@@ -14,7 +14,8 @@
     "purescript-language-purescript-base": "^0.0.2",
     "purescript-prelude": "^0.1",
     "purescript-profunctor": "~0.3.2",
-    "purescript-sets": "~0.5.5"
+    "purescript-sets": "~0.5.5",
+    "purescript-foldable-traversable": "~0.4.2"
   },
   "repository": {
     "type": "git",
