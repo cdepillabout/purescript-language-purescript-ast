@@ -1,5 +1,5 @@
 
-module Language.PureScript.Binders where
+module Language.PureScript.AST.Binders where
 
 import Prelude (map)
 

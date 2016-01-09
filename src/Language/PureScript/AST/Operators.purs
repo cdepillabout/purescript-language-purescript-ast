@@ -1,5 +1,5 @@
 
-module Language.PureScript.Operators where
+module Language.PureScript.AST.Operators where
 
 import Language.PureScript.Crash (internalError)
 
