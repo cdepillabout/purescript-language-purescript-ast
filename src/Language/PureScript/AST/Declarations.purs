@@ -1,5 +1,5 @@
 
-module Language.PureScript.Declarations where
+module Language.PureScript.AST.Declarations where
 
 import Prelude
     ( class Applicative, class Eq, bind, (<$>), pure, (<<<), flip, ($), map
