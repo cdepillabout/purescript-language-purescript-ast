@@ -36,170 +36,196 @@ everywhereOnValues f g h =
     , binder: h'
     }
   where
-  f' :: Declaration -> Declaration
-  f' (DataBindingGroupDeclaration ds) = f (DataBindingGroupDeclaration (map f' ds))
-  f' (ValueDeclaration name nameKind bs val) =
-      f (ValueDeclaration name nameKind (map h' bs) ((map (g' *** g') +++ g') val))
-  f' (BindingGroupDeclaration ds) =
-      f (BindingGroupDeclaration (map (\{ident: name, nameKind: nameKind, expr: val} -> {ident: name, nameKind: nameKind, expr: g' val}) ds))
-  f' (TypeClassDeclaration name args implies ds) =
-      f (TypeClassDeclaration name args implies (map f' ds))
-  f' (TypeInstanceDeclaration name cs className args ds) =
-      f (TypeInstanceDeclaration name cs className args (mapTypeInstanceBody (map f') ds))
-  f' (PositionedDeclaration pos com d) = f (PositionedDeclaration pos com (f' d))
-  f' other = f other
+    f' :: Declaration -> Declaration
+    f' (DataBindingGroupDeclaration ds) = f (DataBindingGroupDeclaration (map f' ds))
+    f' (ValueDeclaration name nameKind bs val) =
+        f (ValueDeclaration name nameKind (map h' bs) ((map (g' *** g') +++ g') val))
+    f' (BindingGroupDeclaration ds) =
+        f (BindingGroupDeclaration (map (\{ident: name, nameKind: nameKind, expr: val} -> {ident: name, nameKind: nameKind, expr: g' val}) ds))
+    f' (TypeClassDeclaration name args implies ds) =
+        f (TypeClassDeclaration name args implies (map f' ds))
+    f' (TypeInstanceDeclaration name cs className args ds) =
+        f (TypeInstanceDeclaration name cs className args (mapTypeInstanceBody (map f') ds))
+    f' (PositionedDeclaration pos com d) = f (PositionedDeclaration pos com (f' d))
+    f' other = f other
 
-  g' :: Expr -> Expr
-  g' (UnaryMinus v) = g (UnaryMinus (g' v))
-  g' (BinaryNoParens op v1 v2) = g (BinaryNoParens (g' op) (g' v1) (g' v2))
-  g' (Parens v) = g (Parens (g' v))
-  g' (OperatorSection op (Left v)) = g (OperatorSection (g' op) (Left $ g' v))
-  g' (OperatorSection op (Right v)) = g (OperatorSection (g' op) (Right $ g' v))
-  g' (ArrayLiteral vs) = g (ArrayLiteral (map g' vs))
-  g' (ObjectLiteral vs) = g (ObjectLiteral (map (map g') vs))
-  g' (ObjectConstructor vs) = g (ObjectConstructor (map (second (map g')) vs))
-  g' (TypeClassDictionaryConstructorApp name v) = g (TypeClassDictionaryConstructorApp name (g' v))
-  g' (Accessor prop v) = g (Accessor prop (g' v))
-  g' (ObjectUpdate obj vs) = g (ObjectUpdate (g' obj) (map (map g') vs))
-  g' (ObjectUpdater obj vs) = g (ObjectUpdater (map g' obj) (map (second (map g')) vs))
-  g' (Abs name v) = g (Abs name (g' v))
-  g' (App v1 v2) = g (App (g' v1) (g' v2))
-  g' (IfThenElse v1 v2 v3) = g (IfThenElse (g' v1) (g' v2) (g' v3))
-  g' (Case vs alts) = g (Case (map g' vs) (map handleCaseAlternative alts))
-  g' (TypedValue check v ty) = g (TypedValue check (g' v) ty)
-  g' (Let ds v) = g (Let (map f' ds) (g' v))
-  g' (Do es) = g (Do (map handleDoNotationElement es))
-  g' (PositionedValue pos com v) = g (PositionedValue pos com (g' v))
-  g' other = g other
+    g' :: Expr -> Expr
+    g' (UnaryMinus v) = g (UnaryMinus (g' v))
+    g' (BinaryNoParens op v1 v2) = g (BinaryNoParens (g' op) (g' v1) (g' v2))
+    g' (Parens v) = g (Parens (g' v))
+    g' (OperatorSection op (Left v)) = g (OperatorSection (g' op) (Left $ g' v))
+    g' (OperatorSection op (Right v)) = g (OperatorSection (g' op) (Right $ g' v))
+    g' (ArrayLiteral vs) = g (ArrayLiteral (map g' vs))
+    g' (ObjectLiteral vs) = g (ObjectLiteral (map (map g') vs))
+    g' (ObjectConstructor vs) = g (ObjectConstructor (map (second (map g')) vs))
+    g' (TypeClassDictionaryConstructorApp name v) = g (TypeClassDictionaryConstructorApp name (g' v))
+    g' (Accessor prop v) = g (Accessor prop (g' v))
+    g' (ObjectUpdate obj vs) = g (ObjectUpdate (g' obj) (map (map g') vs))
+    g' (ObjectUpdater obj vs) = g (ObjectUpdater (map g' obj) (map (second (map g')) vs))
+    g' (Abs name v) = g (Abs name (g' v))
+    g' (App v1 v2) = g (App (g' v1) (g' v2))
+    g' (IfThenElse v1 v2 v3) = g (IfThenElse (g' v1) (g' v2) (g' v3))
+    g' (Case vs alts) = g (Case (map g' vs) (map handleCaseAlternative alts))
+    g' (TypedValue check v ty) = g (TypedValue check (g' v) ty)
+    g' (Let ds v) = g (Let (map f' ds) (g' v))
+    g' (Do es) = g (Do (map handleDoNotationElement es))
+    g' (PositionedValue pos com v) = g (PositionedValue pos com (g' v))
+    g' other = g other
 
-  h' :: Binder -> Binder
-  h' (ConstructorBinder ctor bs) = h (ConstructorBinder ctor (map h' bs))
-  h' (ObjectBinder bs) = h (ObjectBinder (map (map h') bs))
-  h' (ArrayBinder bs) = h (ArrayBinder (map h' bs))
-  h' (NamedBinder name b) = h (NamedBinder name (h' b))
-  h' (PositionedBinder pos com b) = h (PositionedBinder pos com (h' b))
-  h' (TypedBinder t b) = h (TypedBinder t (h' b))
-  h' other = h other
+    h' :: Binder -> Binder
+    h' (ConstructorBinder ctor bs) = h (ConstructorBinder ctor (map h' bs))
+    h' (ObjectBinder bs) = h (ObjectBinder (map (map h') bs))
+    h' (ArrayBinder bs) = h (ArrayBinder (map h' bs))
+    h' (NamedBinder name b) = h (NamedBinder name (h' b))
+    h' (PositionedBinder pos com b) = h (PositionedBinder pos com (h' b))
+    h' (TypedBinder t b) = h (TypedBinder t (h' b))
+    h' other = h other
 
-  handleCaseAlternative :: CaseAlternative -> CaseAlternative
-  handleCaseAlternative (CaseAlternative ca) =
-    CaseAlternative $
-        ca { caseAlternativeBinders = map h' ca.caseAlternativeBinders
-           , caseAlternativeResult = (map (g' *** g') +++ g') ca.caseAlternativeResult
-           }
+    handleCaseAlternative :: CaseAlternative -> CaseAlternative
+    handleCaseAlternative (CaseAlternative ca) =
+        CaseAlternative $
+            ca { caseAlternativeBinders = map h' ca.caseAlternativeBinders
+               , caseAlternativeResult = (map (g' *** g') +++ g') ca.caseAlternativeResult
+               }
 
-  handleDoNotationElement :: DoNotationElement -> DoNotationElement
-  handleDoNotationElement (DoNotationValue v) = DoNotationValue (g' v)
-  handleDoNotationElement (DoNotationBind b v) = DoNotationBind (h' b) (g' v)
-  handleDoNotationElement (DoNotationLet ds) = DoNotationLet (map f' ds)
-  handleDoNotationElement (PositionedDoNotationElement pos com e) =
-      PositionedDoNotationElement pos com (handleDoNotationElement e)
+    handleDoNotationElement :: DoNotationElement -> DoNotationElement
+    handleDoNotationElement (DoNotationValue v) = DoNotationValue (g' v)
+    handleDoNotationElement (DoNotationBind b v) = DoNotationBind (h' b) (g' v)
+    handleDoNotationElement (DoNotationLet ds) = DoNotationLet (map f' ds)
+    handleDoNotationElement (PositionedDoNotationElement pos com e) =
+        PositionedDoNotationElement pos com (handleDoNotationElement e)
 
--- everywhereOnValuesTopDownM :: (Functor m, Applicative m, Monad m) =>
---   (Declaration -> m Declaration) ->
---   (Expr -> m Expr) ->
---   (Binder -> m Binder) ->
---   (Declaration -> m Declaration, Expr -> m Expr, Binder -> m Binder)
--- everywhereOnValuesTopDownM f g h = (f' <=< f, g' <=< g, h' <=< h)
+-- everywhereOnValuesTopDownM :: forall m
+--                             . (Functor m, Applicative m, Monad m)
+--                            => (Declaration -> m Declaration)
+--                            -> (Expr -> m Expr)
+--                            -> (Binder -> m Binder)
+--                            -> { decl :: Declaration -> m Declaration
+--                               , expr :: Expr -> m Expr
+--                               , binder :: Binder -> m Binder
+--                               }
+-- everywhereOnValuesTopDownM f g h =
+--     { decl: f' <=< f
+--     , expr: g' <=< g
+--     , binder: h' <=< h
+--     }
 --   where
---   f' (DataBindingGroupDeclaration ds) = DataBindingGroupDeclaration <$> traverse (f' <=< f) ds
---   f' (ValueDeclaration name nameKind bs val) = ValueDeclaration name nameKind <$> traverse (h' <=< h) bs <*> eitherM (traverse (pairM (g' <=< g) (g' <=< g))) (g' <=< g) val
---   f' (BindingGroupDeclaration ds) = BindingGroupDeclaration <$> traverse (\(name, nameKind, val) -> (,,) name nameKind <$> (g val >>= g')) ds
---   f' (TypeClassDeclaration name args implies ds) = TypeClassDeclaration name args implies <$> traverse (f' <=< f) ds
---   f' (TypeInstanceDeclaration name cs className args ds) = TypeInstanceDeclaration name cs className args <$> traverseTypeInstanceBody (traverse (f' <=< f)) ds
---   f' (PositionedDeclaration pos com d) = PositionedDeclaration pos com <$> (f d >>= f')
---   f' other = f other
+    -- f' (DataBindingGroupDeclaration ds) = DataBindingGroupDeclaration <$> traverse (f' <=< f) ds
+    -- f' (ValueDeclaration name nameKind bs val) = ValueDeclaration name nameKind <$> traverse (h' <=< h) bs <*> eitherM (traverse (pairM (g' <=< g) (g' <=< g))) (g' <=< g) val
+    -- f' (BindingGroupDeclaration ds) = BindingGroupDeclaration <$> traverse (\(name, nameKind, val) -> (,,) name nameKind <$> (g val >>= g')) ds
+    -- f' (TypeClassDeclaration name args implies ds) = TypeClassDeclaration name args implies <$> traverse (f' <=< f) ds
+    -- f' (TypeInstanceDeclaration name cs className args ds) = TypeInstanceDeclaration name cs className args <$> traverseTypeInstanceBody (traverse (f' <=< f)) ds
+    -- f' (PositionedDeclaration pos com d) = PositionedDeclaration pos com <$> (f d >>= f')
+    -- f' other = f other
 
---   g' (UnaryMinus v) = UnaryMinus <$> (g v >>= g')
---   g' (BinaryNoParens op v1 v2) = BinaryNoParens <$> (g op >>= g') <*> (g v1 >>= g') <*> (g v2 >>= g')
---   g' (Parens v) = Parens <$> (g v >>= g')
---   g' (OperatorSection op (Left v)) = OperatorSection <$> (g op >>= g') <*> (Left <$> (g v >>= g'))
---   g' (OperatorSection op (Right v)) = OperatorSection <$> (g op >>= g') <*> (Right <$> (g v >>= g'))
---   g' (ArrayLiteral vs) = ArrayLiteral <$> traverse (g' <=< g) vs
---   g' (ObjectLiteral vs) = ObjectLiteral <$> traverse (sndM (g' <=< g)) vs
---   g' (ObjectConstructor vs) = ObjectConstructor <$> traverse (sndM $ maybeM (g' <=< g)) vs
---   g' (TypeClassDictionaryConstructorApp name v) = TypeClassDictionaryConstructorApp name <$> (g v >>= g')
---   g' (Accessor prop v) = Accessor prop <$> (g v >>= g')
---   g' (ObjectUpdate obj vs) = ObjectUpdate <$> (g obj >>= g') <*> traverse (sndM (g' <=< g)) vs
---   g' (ObjectUpdater obj vs) = ObjectUpdater <$> (maybeM g obj >>= maybeM g') <*> traverse (sndM $ maybeM (g' <=< g)) vs
---   g' (Abs name v) = Abs name <$> (g v >>= g')
---   g' (App v1 v2) = App <$> (g v1 >>= g') <*> (g v2 >>= g')
---   g' (IfThenElse v1 v2 v3) = IfThenElse <$> (g v1 >>= g') <*> (g v2 >>= g') <*> (g v3 >>= g')
---   g' (Case vs alts) = Case <$> traverse (g' <=< g) vs <*> traverse handleCaseAlternative alts
---   g' (TypedValue check v ty) = TypedValue check <$> (g v >>= g') <*> pure ty
---   g' (Let ds v) = Let <$> traverse (f' <=< f) ds <*> (g v >>= g')
---   g' (Do es) = Do <$> traverse handleDoNotationElement es
---   g' (PositionedValue pos com v) = PositionedValue pos com <$> (g v >>= g')
---   g' other = g other
+    -- g' (UnaryMinus v) = UnaryMinus <$> (g v >>= g')
+    -- g' (BinaryNoParens op v1 v2) = BinaryNoParens <$> (g op >>= g') <*> (g v1 >>= g') <*> (g v2 >>= g')
+    -- g' (Parens v) = Parens <$> (g v >>= g')
+    -- g' (OperatorSection op (Left v)) = OperatorSection <$> (g op >>= g') <*> (Left <$> (g v >>= g'))
+    -- g' (OperatorSection op (Right v)) = OperatorSection <$> (g op >>= g') <*> (Right <$> (g v >>= g'))
+    -- g' (ArrayLiteral vs) = ArrayLiteral <$> traverse (g' <=< g) vs
+    -- g' (ObjectLiteral vs) = ObjectLiteral <$> traverse (sndM (g' <=< g)) vs
+    -- g' (ObjectConstructor vs) = ObjectConstructor <$> traverse (sndM $ maybeM (g' <=< g)) vs
+    -- g' (TypeClassDictionaryConstructorApp name v) = TypeClassDictionaryConstructorApp name <$> (g v >>= g')
+    -- g' (Accessor prop v) = Accessor prop <$> (g v >>= g')
+    -- g' (ObjectUpdate obj vs) = ObjectUpdate <$> (g obj >>= g') <*> traverse (sndM (g' <=< g)) vs
+    -- g' (ObjectUpdater obj vs) = ObjectUpdater <$> (maybeM g obj >>= maybeM g') <*> traverse (sndM $ maybeM (g' <=< g)) vs
+    -- g' (Abs name v) = Abs name <$> (g v >>= g')
+    -- g' (App v1 v2) = App <$> (g v1 >>= g') <*> (g v2 >>= g')
+    -- g' (IfThenElse v1 v2 v3) = IfThenElse <$> (g v1 >>= g') <*> (g v2 >>= g') <*> (g v3 >>= g')
+    -- g' (Case vs alts) = Case <$> traverse (g' <=< g) vs <*> traverse handleCaseAlternative alts
+    -- g' (TypedValue check v ty) = TypedValue check <$> (g v >>= g') <*> pure ty
+    -- g' (Let ds v) = Let <$> traverse (f' <=< f) ds <*> (g v >>= g')
+    -- g' (Do es) = Do <$> traverse handleDoNotationElement es
+    -- g' (PositionedValue pos com v) = PositionedValue pos com <$> (g v >>= g')
+    -- g' other = g other
 
---   h' (ConstructorBinder ctor bs) = ConstructorBinder ctor <$> traverse (h' <=< h) bs
---   h' (ObjectBinder bs) = ObjectBinder <$> traverse (sndM (h' <=< h)) bs
---   h' (ArrayBinder bs) = ArrayBinder <$> traverse (h' <=< h) bs
---   h' (NamedBinder name b) = NamedBinder name <$> (h b >>= h')
---   h' (PositionedBinder pos com b) = PositionedBinder pos com <$> (h b >>= h')
---   h' (TypedBinder t b) = TypedBinder t <$> (h b >>= h')
---   h' other = h other
+    -- h' (ConstructorBinder ctor bs) = ConstructorBinder ctor <$> traverse (h' <=< h) bs
+    -- h' (ObjectBinder bs) = ObjectBinder <$> traverse (sndM (h' <=< h)) bs
+    -- h' (ArrayBinder bs) = ArrayBinder <$> traverse (h' <=< h) bs
+    -- h' (NamedBinder name b) = NamedBinder name <$> (h b >>= h')
+    -- h' (PositionedBinder pos com b) = PositionedBinder pos com <$> (h b >>= h')
+    -- h' (TypedBinder t b) = TypedBinder t <$> (h b >>= h')
+    -- h' other = h other
 
---   handleCaseAlternative (CaseAlternative bs val) = CaseAlternative <$> traverse (h' <=< h) bs
---                                                                    <*> eitherM (traverse (pairM (g' <=< g) (g' <=< g))) (g' <=< g) val
+    -- handleCaseAlternative (CaseAlternative bs val) = CaseAlternative <$> traverse (h' <=< h) bs
+    --                                                                 <*> eitherM (traverse (pairM (g' <=< g) (g' <=< g))) (g' <=< g) val
 
---   handleDoNotationElement (DoNotationValue v) = DoNotationValue <$> (g' <=< g) v
---   handleDoNotationElement (DoNotationBind b v) = DoNotationBind <$> (h' <=< h) b <*> (g' <=< g) v
---   handleDoNotationElement (DoNotationLet ds) = DoNotationLet <$> traverse (f' <=< f) ds
---   handleDoNotationElement (PositionedDoNotationElement pos com e) = PositionedDoNotationElement pos com <$> handleDoNotationElement e
+    -- handleDoNotationElement (DoNotationValue v) = DoNotationValue <$> (g' <=< g) v
+    -- handleDoNotationElement (DoNotationBind b v) = DoNotationBind <$> (h' <=< h) b <*> (g' <=< g) v
+    -- handleDoNotationElement (DoNotationLet ds) = DoNotationLet <$> traverse (f' <=< f) ds
+    -- handleDoNotationElement (PositionedDoNotationElement pos com e) = PositionedDoNotationElement pos com <$> handleDoNotationElement e
 
--- everywhereOnValuesM :: (Functor m, Applicative m, Monad m) =>
---   (Declaration -> m Declaration) ->
---   (Expr -> m Expr) ->
---   (Binder -> m Binder) ->
---   (Declaration -> m Declaration, Expr -> m Expr, Binder -> m Binder)
--- everywhereOnValuesM f g h = (f', g', h')
---   where
---   f' (DataBindingGroupDeclaration ds) = (DataBindingGroupDeclaration <$> traverse f' ds) >>= f
---   f' (ValueDeclaration name nameKind bs val) = (ValueDeclaration name nameKind <$> traverse h' bs <*> eitherM (traverse (pairM g' g')) g' val) >>= f
---   f' (BindingGroupDeclaration ds) = (BindingGroupDeclaration <$> traverse (\(name, nameKind, val) -> (,,) name nameKind <$> g' val) ds) >>= f
---   f' (TypeClassDeclaration name args implies ds) = (TypeClassDeclaration name args implies <$> traverse f' ds) >>= f
---   f' (TypeInstanceDeclaration name cs className args ds) = (TypeInstanceDeclaration name cs className args <$> traverseTypeInstanceBody (traverse f') ds) >>= f
---   f' (PositionedDeclaration pos com d) = (PositionedDeclaration pos com <$> f' d) >>= f
---   f' other = f other
+everywhereOnValuesM :: forall m
+                     . (Functor m, Applicative m, Monad m)
+                    => (Declaration -> m Declaration)
+                    -> (Expr -> m Expr)
+                    -> (Binder -> m Binder)
+                    -> { decl :: Declaration -> m Declaration
+                       , expr :: Expr -> m Expr
+                       , binder :: Binder -> m Binder
+                       }
+everywhereOnValuesM f g h =
+    { decl: f'
+    , expr: g'
+    , binder: h'
+    }
+  where
+    f' :: Declaration -> m Declaration
+    f' (DataBindingGroupDeclaration ds) = (DataBindingGroupDeclaration <$> traverse f' ds) >>= f
+    f' (ValueDeclaration name nameKind bs val) = (ValueDeclaration name nameKind <$> traverse h' bs <*> eitherM (traverse (pairM g' g')) g' val) >>= f
+    f' (BindingGroupDeclaration ds) = do
+        decls <- traverse (\{ident: name, nameKind: nameKind, expr: val} -> {ident: name, nameKind: nameKind, expr: _} <$> g' val) ds
+        f $ BindingGroupDeclaration decls
+    f' (TypeClassDeclaration name args implies ds) = (TypeClassDeclaration name args implies <$> traverse f' ds) >>= f
+    f' (TypeInstanceDeclaration name cs className args ds) = (TypeInstanceDeclaration name cs className args <$> traverseTypeInstanceBody (traverse f') ds) >>= f
+    f' (PositionedDeclaration pos com d) = (PositionedDeclaration pos com <$> f' d) >>= f
+    f' other = f other
 
---   g' (UnaryMinus v) = (UnaryMinus <$> g' v) >>= g
---   g' (BinaryNoParens op v1 v2) = (BinaryNoParens <$> g' op <*> g' v1 <*> g' v2) >>= g
---   g' (Parens v) = (Parens <$> g' v) >>= g
---   g' (OperatorSection op (Left v)) = (OperatorSection <$> g' op <*> (Left <$> g' v)) >>= g
---   g' (OperatorSection op (Right v)) = (OperatorSection <$> g' op <*> (Right <$> g' v)) >>= g
---   g' (ArrayLiteral vs) = (ArrayLiteral <$> traverse g' vs) >>= g
---   g' (ObjectLiteral vs) = (ObjectLiteral <$> traverse (sndM g') vs) >>= g
---   g' (ObjectConstructor vs) = (ObjectConstructor <$> traverse (sndM $ maybeM g') vs) >>= g
---   g' (TypeClassDictionaryConstructorApp name v) = (TypeClassDictionaryConstructorApp name <$> g' v) >>= g
---   g' (Accessor prop v) = (Accessor prop <$> g' v) >>= g
---   g' (ObjectUpdate obj vs) = (ObjectUpdate <$> g' obj <*> traverse (sndM g') vs) >>= g
---   g' (ObjectUpdater obj vs) = (ObjectUpdater <$> maybeM g' obj <*> traverse (sndM $ maybeM g') vs) >>= g
---   g' (Abs name v) = (Abs name <$> g' v) >>= g
---   g' (App v1 v2) = (App <$> g' v1 <*> g' v2) >>= g
---   g' (IfThenElse v1 v2 v3) = (IfThenElse <$> g' v1 <*> g' v2 <*> g' v3) >>= g
---   g' (Case vs alts) = (Case <$> traverse g' vs <*> traverse handleCaseAlternative alts) >>= g
---   g' (TypedValue check v ty) = (TypedValue check <$> g' v <*> pure ty) >>= g
---   g' (Let ds v) = (Let <$> traverse f' ds <*> g' v) >>= g
---   g' (Do es) = (Do <$> traverse handleDoNotationElement es) >>= g
---   g' (PositionedValue pos com v) = (PositionedValue pos com <$> g' v) >>= g
---   g' other = g other
+    g' :: Expr -> m Expr
+    g' (UnaryMinus v) = (UnaryMinus <$> g' v) >>= g
+    g' (BinaryNoParens op v1 v2) = (BinaryNoParens <$> g' op <*> g' v1 <*> g' v2) >>= g
+    g' (Parens v) = (Parens <$> g' v) >>= g
+    g' (OperatorSection op (Left v)) = (OperatorSection <$> g' op <*> (Left <$> g' v)) >>= g
+    g' (OperatorSection op (Right v)) = (OperatorSection <$> g' op <*> (Right <$> g' v)) >>= g
+    g' (ArrayLiteral vs) = (ArrayLiteral <$> traverse g' vs) >>= g
+    g' (ObjectLiteral vs) = (ObjectLiteral <$> traverse (sndM g') vs) >>= g
+    g' (ObjectConstructor vs) = (ObjectConstructor <$> traverse (sndM $ maybeM g') vs) >>= g
+    g' (TypeClassDictionaryConstructorApp name v) = (TypeClassDictionaryConstructorApp name <$> g' v) >>= g
+    g' (Accessor prop v) = (Accessor prop <$> g' v) >>= g
+    g' (ObjectUpdate obj vs) = (ObjectUpdate <$> g' obj <*> traverse (sndM g') vs) >>= g
+    g' (ObjectUpdater obj vs) = (ObjectUpdater <$> maybeM g' obj <*> traverse (sndM $ maybeM g') vs) >>= g
+    g' (Abs name v) = (Abs name <$> g' v) >>= g
+    g' (App v1 v2) = (App <$> g' v1 <*> g' v2) >>= g
+    g' (IfThenElse v1 v2 v3) = (IfThenElse <$> g' v1 <*> g' v2 <*> g' v3) >>= g
+    g' (Case vs alts) = (Case <$> traverse g' vs <*> traverse handleCaseAlternative alts) >>= g
+    g' (TypedValue check v ty) = (TypedValue check <$> g' v <*> pure ty) >>= g
+    g' (Let ds v) = (Let <$> traverse f' ds <*> g' v) >>= g
+    g' (Do es) = (Do <$> traverse handleDoNotationElement es) >>= g
+    g' (PositionedValue pos com v) = (PositionedValue pos com <$> g' v) >>= g
+    g' other = g other
 
---   h' (ConstructorBinder ctor bs) = (ConstructorBinder ctor <$> traverse h' bs) >>= h
---   h' (ObjectBinder bs) = (ObjectBinder <$> traverse (sndM h') bs) >>= h
---   h' (ArrayBinder bs) = (ArrayBinder <$> traverse h' bs) >>= h
---   h' (NamedBinder name b) = (NamedBinder name <$> h' b) >>= h
---   h' (PositionedBinder pos com b) = (PositionedBinder pos com <$> h' b) >>= h
---   h' (TypedBinder t b) = (TypedBinder t <$> h' b) >>= h
---   h' other = h other
+    h' :: Binder -> m Binder
+    h' (ConstructorBinder ctor bs) = (ConstructorBinder ctor <$> traverse h' bs) >>= h
+    h' (ObjectBinder bs) = (ObjectBinder <$> traverse (sndM h') bs) >>= h
+    h' (ArrayBinder bs) = (ArrayBinder <$> traverse h' bs) >>= h
+    h' (NamedBinder name b) = (NamedBinder name <$> h' b) >>= h
+    h' (PositionedBinder pos com b) = (PositionedBinder pos com <$> h' b) >>= h
+    h' (TypedBinder t b) = (TypedBinder t <$> h' b) >>= h
+    h' other = h other
 
---   handleCaseAlternative (CaseAlternative bs val) = CaseAlternative <$> traverse h' bs
---                                                                    <*> eitherM (traverse (pairM g' g')) g' val
+    handleCaseAlternative :: CaseAlternative -> m CaseAlternative
+    handleCaseAlternative (CaseAlternative { caseAlternativeBinders: bs
+                                           , caseAlternativeResult: val}) = do
+        binders <- traverse h' bs
+        result <- eitherM (traverse (pairM g' g')) g' val
+        pure $ CaseAlternative { caseAlternativeBinders: binders, caseAlternativeResult: result }
 
---   handleDoNotationElement (DoNotationValue v) = DoNotationValue <$> g' v
---   handleDoNotationElement (DoNotationBind b v) = DoNotationBind <$> h' b <*> g' v
---   handleDoNotationElement (DoNotationLet ds) = DoNotationLet <$> traverse f' ds
---   handleDoNotationElement (PositionedDoNotationElement pos com e) = PositionedDoNotationElement pos com <$> handleDoNotationElement e
+    handleDoNotationElement :: DoNotationElement -> m DoNotationElement
+    handleDoNotationElement (DoNotationValue v) = DoNotationValue <$> g' v
+    handleDoNotationElement (DoNotationBind b v) = DoNotationBind <$> h' b <*> g' v
+    handleDoNotationElement (DoNotationLet ds) = DoNotationLet <$> traverse f' ds
+    handleDoNotationElement (PositionedDoNotationElement pos com e) = PositionedDoNotationElement pos com <$> handleDoNotationElement e
 
 everythingOnValues :: forall r
                     . (r -> r -> r)
