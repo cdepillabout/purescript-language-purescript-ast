@@ -2,42 +2,49 @@
 module Language.PureScript.Declarations where
 
 import Prelude
+    ( class Applicative, class Eq, bind, (<$>), pure, (<<<), flip, ($), map
+    , eq, (&&), (==), (||)
+    )
 
-import Data.Array
-import Data.Either
-import Data.Maybe
-import Data.Foldable
-import Data.Tuple
+import Data.Array (concatMap, null, nub, (\\), mapMaybe, concat, (:))
+import Data.Either (Either)
+import Data.Foldable (any)
+import Data.Identity (Identity(Identity), runIdentity)
+import Data.Map (Map)
+import Data.Maybe(Maybe(Nothing, Just))
+import Data.Tuple (Tuple(Tuple))
 
-import Language.PureScript.AST.Binders
-import Language.PureScript.AST.Operators
-import Language.PureScript.Comments
-import Language.PureScript.Environment
-import Language.PureScript.Kinds
-import Language.PureScript.Names
-import Language.PureScript.SourcePos
-import Language.PureScript.TypeClassDictionaries
-import Language.PureScript.Types
+import Language.PureScript.AST.Binders  (Binder)
+import Language.PureScript.AST.Operators (Fixity)
+import Language.PureScript.Comments (Comment)
+import Language.PureScript.Environment (NameKind, DataDeclType)
+import Language.PureScript.Kinds (Kind)
+import Language.PureScript.Names (ProperName, Qualified, Ident, ModuleName)
+import Language.PureScript.SourcePos (SourceSpan)
+import Language.PureScript.TypeClassDictionaries (TypeClassDictionaryInScope)
+import Language.PureScript.Types (Type, Constraint)
 
 -- | A module declaration, consisting of comments about the module, a module name,
 -- a list of declarations, and a list of the declarations that are
 -- explicitly exported. If the export list is Nothing, everything is exported.
--- data Module = Module SourceSpan (Array Comment) ModuleName (Array Declaration) (Maybe (Array DeclarationRef))
+data Module = Module SourceSpan (Array Comment) ModuleName (Array Declaration) (Maybe (Array DeclarationRef))
 -- deriving (Show, Read, D.Data, D.Typeable)
 
 -- | Return a module's name.
--- getModuleName :: Module -> ModuleName
--- getModuleName (Module _ _ name _ _) = name
+getModuleName :: Module -> ModuleName
+getModuleName (Module _ _ name _ _) = name
 
 -- | Add an import declaration for a module if it does not already explicitly import it.
--- addDefaultImport :: ModuleName -> Module -> Module
--- addDefaultImport toImport m@(Module ss coms mn decls exps)  =
---   if isExistingImport `any` decls || mn == toImport then m
---   else Module ss coms mn (ImportDeclaration toImport Implicit Nothing False : decls) exps
---   where
---   isExistingImport (ImportDeclaration mn' _ _ _) | mn' == toImport = True
---   isExistingImport (PositionedDeclaration _ _ d) = isExistingImport d
---   isExistingImport _ = False
+addDefaultImport :: ModuleName -> Module -> Module
+addDefaultImport toImport m@(Module ss coms mn decls exps) =
+    if isExistingImport `any` decls || mn == toImport
+        then m
+        else Module ss coms mn (ImportDeclaration toImport Implicit Nothing false : decls) exps
+  where
+    isExistingImport :: Declaration -> Boolean
+    isExistingImport (ImportDeclaration mn' _ _ _) | mn' == toImport = true
+    isExistingImport (PositionedDeclaration _ _ d) = isExistingImport d
+    isExistingImport _ = false
 
 -- | An item in a list of explicit imports or exports
 data DeclarationRef
@@ -113,130 +120,120 @@ isImplicit :: ImportDeclarationType -> Boolean
 isImplicit Implicit = true
 isImplicit _ = false
 
--- -- | The data type of declarations
--- data Declaration
---   -- | A data type declaration (data or newtype, name, arguments, data constructors)
---   = DataDeclaration DataDeclType ProperName (Array (Tuple String (Maybe Kind))) (Array (Tuple ProperName (Array Type)))
---   -- | A minimal mutually recursive set of data type declarations
---   | DataBindingGroupDeclaration (Array Declaration)
---   -- | A type synonym declaration (name, arguments, type)
---   | TypeSynonymDeclaration ProperName (Array (Tuple String (Maybe Kind))) Type
---   -- | A type declaration for a value (name, ty)
---   | TypeDeclaration Ident Type
---   -- | A value declaration (name, top-level binders, optional guard, value)
---   | ValueDeclaration Ident NameKind (Array Binder) (Either (Array (Tuple Guard Expr)) Expr)
---   -- | A minimal mutually recursive set of value declarations
---   | BindingGroupDeclaration (Array { ident :: Ident, nameKind :: NameKind, expr :: Expr })
---   -- | A foreign import declaration (name, type)
---   | ExternDeclaration Ident Type
---   -- | A data type foreign import (name, kind)
---   | ExternDataDeclaration ProperName Kind
---   -- | A fixity declaration (fixity data, operator name, value the operator is an alias for)
---   | FixityDeclaration Fixity String (Maybe Ident)
---   -- | A module import (module name, qualified/unqualified/hiding, optional "qualified as" name)
---   -- TODO: also a boolean specifying whether the old `qualified` syntax was
---   -- used, so a warning can be raised in desugaring (remove for 0.9)
---   | ImportDeclaration ModuleName ImportDeclarationType (Maybe ModuleName) Bool
---   -- | A type class declaration (name, argument, implies, member declarations)
---   | TypeClassDeclaration ProperName (Array (Tuple String (Maybe Kind))) (Array Constraint) (Array Declaration)
---   -- | A type instance declaration (name, dependencies, class name, instance types, member
---   -- declarations)
---   | TypeInstanceDeclaration Ident (Array Constraint) (Qualified ProperName) (Array Type) TypeInstanceBody
---   -- | A declaration with source position information
---   | PositionedDeclaration SourceSpan (Array Comment) Declaration
--- -- deriving (Show, Read, D.Data, D.Typeable)
+-- | The data type of declarations
+data Declaration
+  -- | A data type declaration (data or newtype, name, arguments, data constructors)
+  = DataDeclaration DataDeclType ProperName (Array (Tuple String (Maybe Kind))) (Array (Tuple ProperName (Array Type)))
+  -- | A minimal mutually recursive set of data type declarations
+  | DataBindingGroupDeclaration (Array Declaration)
+  -- | A type synonym declaration (name, arguments, type)
+  | TypeSynonymDeclaration ProperName (Array (Tuple String (Maybe Kind))) Type
+  -- | A type declaration for a value (name, ty)
+  | TypeDeclaration Ident Type
+  -- | A value declaration (name, top-level binders, optional guard, value)
+  | ValueDeclaration Ident NameKind (Array Binder) (Either (Array (Tuple Guard Expr)) Expr)
+  -- | A minimal mutually recursive set of value declarations
+  | BindingGroupDeclaration (Array { ident :: Ident, nameKind :: NameKind, expr :: Expr })
+  -- | A foreign import declaration (name, type)
+  | ExternDeclaration Ident Type
+  -- | A data type foreign import (name, kind)
+  | ExternDataDeclaration ProperName Kind
+  -- | A fixity declaration (fixity data, operator name, value the operator is an alias for)
+  | FixityDeclaration Fixity String (Maybe Ident)
+  -- | A module import (module name, qualified/unqualified/hiding, optional "qualified as" name)
+  -- TODO: also a boolean specifying whether the old `qualified` syntax was
+  -- used, so a warning can be raised in desugaring (remove for 0.9)
+  | ImportDeclaration ModuleName ImportDeclarationType (Maybe ModuleName) Boolean
+  -- | A type class declaration (name, argument, implies, member declarations)
+  | TypeClassDeclaration ProperName (Array (Tuple String (Maybe Kind))) (Array Constraint) (Array Declaration)
+  -- | A type instance declaration (name, dependencies, class name, instance types, member
+  -- declarations)
+  | TypeInstanceDeclaration Ident (Array Constraint) (Qualified ProperName) (Array Type) TypeInstanceBody
+  -- | A declaration with source position information
+  | PositionedDeclaration SourceSpan (Array Comment) Declaration
+-- deriving (Show, Read, D.Data, D.Typeable)
 
--- -- | The members of a type class instance declaration
--- data TypeInstanceBody
---   -- | This is a derived instance
---   = DerivedInstance
---   -- | This is a regular (explicit) instance
---   | ExplicitInstance (Array Declaration)
--- -- deriving (Show, Read, D.Data, D.Typeable)
+-- | The members of a type class instance declaration
+data TypeInstanceBody
+  -- | This is a derived instance
+  = DerivedInstance
+  -- | This is a regular (explicit) instance
+  | ExplicitInstance (Array Declaration)
+-- deriving (Show, Read, D.Data, D.Typeable)
 
--- mapTypeInstanceBody :: ([Declaration] -> [Declaration]) -> TypeInstanceBody -> TypeInstanceBody
--- mapTypeInstanceBody f = runIdentity . traverseTypeInstanceBody (Identity . f)
+mapTypeInstanceBody :: (Array Declaration -> Array Declaration)
+                    -> TypeInstanceBody
+                    -> TypeInstanceBody
+mapTypeInstanceBody f = runIdentity <<< traverseTypeInstanceBody (Identity <<< f)
 
--- -- | A traversal for TypeInstanceBody
--- traverseTypeInstanceBody :: (Applicative f) => ([Declaration] -> f [Declaration]) -> TypeInstanceBody -> f TypeInstanceBody
--- traverseTypeInstanceBody _ DerivedInstance = pure DerivedInstance
--- traverseTypeInstanceBody f (ExplicitInstance ds) = ExplicitInstance <$> f ds
+-- | A traversal for `TypeInstanceBody`
+traverseTypeInstanceBody :: forall f . (Applicative f)
+                         => (Array Declaration -> f (Array Declaration))
+                         -> TypeInstanceBody
+                         -> f TypeInstanceBody
+traverseTypeInstanceBody _ DerivedInstance = pure DerivedInstance
+traverseTypeInstanceBody f (ExplicitInstance ds) = ExplicitInstance <$> f ds
 
--- -- |
--- -- Test if a declaration is a value declaration
--- --
--- isValueDecl :: Declaration -> Bool
--- isValueDecl ValueDeclaration{} = True
--- isValueDecl (PositionedDeclaration _ _ d) = isValueDecl d
--- isValueDecl _ = False
+-- | Test if a declaration is a value declaration
+isValueDecl :: Declaration -> Boolean
+isValueDecl (ValueDeclaration _ _ _ _) = true
+isValueDecl (PositionedDeclaration _ _ d) = isValueDecl d
+isValueDecl _ = false
 
--- -- |
--- -- Test if a declaration is a data type or type synonym declaration
--- --
--- isDataDecl :: Declaration -> Bool
--- isDataDecl DataDeclaration{} = True
--- isDataDecl TypeSynonymDeclaration{} = True
--- isDataDecl (PositionedDeclaration _ _ d) = isDataDecl d
--- isDataDecl _ = False
+-- | Test if a declaration is a data type or type synonym declaration
+isDataDecl :: Declaration -> Boolean
+isDataDecl (DataDeclaration _ _ _ _) = true
+isDataDecl (TypeSynonymDeclaration _ _ _) = true
+isDataDecl (PositionedDeclaration _ _ d) = isDataDecl d
+isDataDecl _ = false
 
--- -- |
--- -- Test if a declaration is a module import
--- --
--- isImportDecl :: Declaration -> Bool
--- isImportDecl ImportDeclaration{} = True
--- isImportDecl (PositionedDeclaration _ _ d) = isImportDecl d
--- isImportDecl _ = False
+-- | Test if a declaration is a module import
+isImportDecl :: Declaration -> Boolean
+isImportDecl (ImportDeclaration _ _ _ _) = true
+isImportDecl (PositionedDeclaration _ _ d) = isImportDecl d
+isImportDecl _ = false
 
--- -- |
--- -- Test if a declaration is a data type foreign import
--- --
--- isExternDataDecl :: Declaration -> Bool
--- isExternDataDecl ExternDataDeclaration{} = True
--- isExternDataDecl (PositionedDeclaration _ _ d) = isExternDataDecl d
--- isExternDataDecl _ = False
+-- | Test if a declaration is a data type foreign import
+isExternDataDecl :: Declaration -> Boolean
+isExternDataDecl (ExternDataDeclaration _ _) = true
+isExternDataDecl (PositionedDeclaration _ _ d) = isExternDataDecl d
+isExternDataDecl _ = false
 
--- -- |
--- -- Test if a declaration is a fixity declaration
--- --
--- isFixityDecl :: Declaration -> Bool
--- isFixityDecl FixityDeclaration{} = True
--- isFixityDecl (PositionedDeclaration _ _ d) = isFixityDecl d
--- isFixityDecl _ = False
+-- | Test if a declaration is a fixity declaration
+isFixityDecl :: Declaration -> Boolean
+isFixityDecl (FixityDeclaration _ _ _) = true
+isFixityDecl (PositionedDeclaration _ _ d) = isFixityDecl d
+isFixityDecl _ = false
 
--- -- |
--- -- Test if a declaration is a foreign import
--- --
--- isExternDecl :: Declaration -> Bool
--- isExternDecl ExternDeclaration{} = True
--- isExternDecl (PositionedDeclaration _ _ d) = isExternDecl d
--- isExternDecl _ = False
+-- | Test if a declaration is a foreign import
+isExternDecl :: Declaration -> Boolean
+isExternDecl (ExternDeclaration _ _)  = true
+isExternDecl (PositionedDeclaration _ _ d) = isExternDecl d
+isExternDecl _ = false
 
--- -- |
--- -- Test if a declaration is a type class instance declaration
--- --
--- isTypeClassInstanceDeclaration :: Declaration -> Bool
--- isTypeClassInstanceDeclaration TypeInstanceDeclaration{} = True
--- isTypeClassInstanceDeclaration (PositionedDeclaration _ _ d) = isTypeClassInstanceDeclaration d
--- isTypeClassInstanceDeclaration _ = False
+-- | Test if a declaration is a type class instance declaration
+isTypeClassInstanceDeclaration :: Declaration -> Boolean
+isTypeClassInstanceDeclaration (TypeInstanceDeclaration _ _ _ _ _) = true
+isTypeClassInstanceDeclaration (PositionedDeclaration _ _ d) = isTypeClassInstanceDeclaration d
+isTypeClassInstanceDeclaration _ = false
 
--- -- |
--- -- Test if a declaration is a type class declaration
--- --
--- isTypeClassDeclaration :: Declaration -> Bool
--- isTypeClassDeclaration TypeClassDeclaration{} = True
--- isTypeClassDeclaration (PositionedDeclaration _ _ d) = isTypeClassDeclaration d
--- isTypeClassDeclaration _ = False
+-- | Test if a declaration is a type class declaration
+isTypeClassDeclaration :: Declaration -> Boolean
+isTypeClassDeclaration (TypeClassDeclaration _ _ _ _) = true
+isTypeClassDeclaration (PositionedDeclaration _ _ d) = isTypeClassDeclaration d
+isTypeClassDeclaration _ = false
 
--- -- |
--- -- Recursively flatten data binding groups in the list of declarations
--- flattenDecls :: [Declaration] -> [Declaration]
--- flattenDecls = concatMap flattenOne
---     where flattenOne :: Declaration -> [Declaration]
---           flattenOne (DataBindingGroupDeclaration decls) = concatMap flattenOne decls
---           flattenOne d = [d]
+-- |
+-- Recursively flatten data binding groups in the list of declarations
+flattenDecls :: Array Declaration -> Array Declaration
+flattenDecls = concatMap flattenOne
+  where
+    flattenOne :: Declaration -> Array Declaration
+    flattenOne (DataBindingGroupDeclaration decls) = concatMap flattenOne decls
+    flattenOne d = [d]
 
 -- | A guard is just a boolean-valued expression that appears alongside a set of binders
--- type Guard = Expr
+type Guard = Expr
 
 -- | Data type for expressions and terms
 data Expr
@@ -290,7 +287,7 @@ data Expr
   -- desugared into case expressions, hence the need for guards and multiple binders per branch here.
   | Case (Array Expr) (Array CaseAlternative)
   -- | A value with a type annotation
-  | TypedValue Bool Expr Type
+  | TypedValue Boolean Expr Type
   -- | A let binding
   | Let (Array Declaration) Expr
   -- | A do-notation block
@@ -325,14 +322,14 @@ newtype CaseAlternative = CaseAlternative
 -- deriving (Show, Read, D.Data, D.Typeable)
 
 -- | A statement in a do-notation block
--- data DoNotationElement
---   -- | A monadic value without a binder
---   = DoNotationValue Expr
---   -- | A monadic value with a binder
---   | DoNotationBind Binder Expr
---   -- | A let statement, i.e. a pure value with a binder
---   | DoNotationLet (Array Declaration)
---   -- | A do notation element with source position information
---   | PositionedDoNotationElement SourceSpan (Array Comment) DoNotationElement
+data DoNotationElement
+  -- | A monadic value without a binder
+  = DoNotationValue Expr
+  -- | A monadic value with a binder
+  | DoNotationBind Binder Expr
+  -- | A let statement, i.e. a pure value with a binder
+  | DoNotationLet (Array Declaration)
+  -- | A do notation element with source position information
+  | PositionedDoNotationElement SourceSpan (Array Comment) DoNotationElement
 -- deriving (Show, Read, D.Data, D.Typeable)
 
