@@ -12,7 +12,8 @@
   ],
   "dependencies": {
     "purescript-language-purescript-base": "^0.0.2",
-    "purescript-prelude": "^0.1"
+    "purescript-prelude": "^0.1",
+    "purescript-profunctor": "~0.3.2"
   },
   "repository": {
     "type": "git",
